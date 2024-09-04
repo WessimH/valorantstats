@@ -1,9 +1,7 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import './App.css';
-import {
-    TextField, ThemeProvider, createTheme, InputLabel, Select, MenuItem, Box, CssBaseline, CircularProgress, Typography
-} from '@mui/material';
-import {LineChart} from '@mui/x-charts/LineChart';
+import { TextField, ThemeProvider, createTheme, InputLabel, Select, MenuItem, Box, CssBaseline, CircularProgress, Typography } from '@mui/material';
+import { LineChart } from '@mui/x-charts/LineChart';
 
 const darkTheme = createTheme({
     palette: {
@@ -11,30 +9,38 @@ const darkTheme = createTheme({
     },
 });
 
-const servers = [{value: 'na', label: 'North America'}, {value: 'eu', label: 'Europe'}, {
-    value: 'ap',
-    label: 'Asia Pacific'
-}, {value: 'kr', label: 'Korea'}, {value: 'latam', label: 'Latin America'}, {value: 'br', label: 'Brazil'},];
+const servers = [
+    { value: 'na', label: 'North America' },
+    { value: 'eu', label: 'Europe' },
+    { value: 'ap', label: 'Asia Pacific' },
+    { value: 'kr', label: 'Korea' },
+    { value: 'latam', label: 'Latin America' },
+    { value: 'br', label: 'Brazil' },
+];
 
 function App() {
-    const [data, setData] = useState([]);
     const [error, setError] = useState(null);
     const [name, setName] = useState('');
     const [tag, setTag] = useState('');
     const [server, setServer] = useState('');
     const [dataset, setDataset] = useState([]);
     const [winRate, setWinRate] = useState(0); // State to hold the win rate
+    const [gameData, setGameData] = useState([]); // State to hold the fetched game data
+    const apiKey = process.env.REACT_APP_API_KEY;
 
     const fetchData = useCallback(async () => {
         if (name && tag && server) {
             try {
-                const response = await fetch(`https://api.henrikdev.xyz/valorant/v1/mmr-history/${server}/${name}/${tag}?api_key=`, {
+                const response = await fetch(`https://api.henrikdev.xyz/valorant/v1/mmr-history/${server}/${name}/${tag}?api_key=${apiKey}`, {
                     method: 'GET',
                 });
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const result = await response.json();
+                console.log('Fetched Data:', result.data); // Log the fetched data for debugging
+                setGameData(result.data); // Store the fetched game data
+
                 const transformedData = result.data.map(match => {
                     const date = new Date(match.date);
                     const hour = date.getHours();
@@ -42,6 +48,8 @@ function App() {
                         hour, result: match.mmr_change_to_last_game > 0 ? 'Win' : 'Loss'
                     };
                 });
+
+                console.log('Transformed Data:', transformedData); // Log transformed data for debugging
 
                 const counts = transformedData.reduce((acc, match) => {
                     const hour = match.hour;
@@ -55,6 +63,8 @@ function App() {
                     }
                     return acc;
                 }, {});
+
+                console.log('Counts:', counts); // Log counts for debugging
 
                 const datasetArray = Object.values(counts);
                 setDataset(datasetArray);
@@ -71,14 +81,11 @@ function App() {
                 return [];
             }
         }
-    }, [name, tag, server]);
+    }, [name, tag, server , apiKey]);
 
     useEffect(() => {
         const getData = async () => {
-            const result = await fetchData();
-            if (result) {
-                setData(result);
-            }
+            await fetchData();
         };
 
         getData();
@@ -88,7 +95,8 @@ function App() {
         setServer(event.target.value);
     };
 
-    return (<ThemeProvider theme={darkTheme}>
+    return (
+        <ThemeProvider theme={darkTheme}>
             <CssBaseline/>
             {/* Centered H1 */}
             <Typography
@@ -161,14 +169,12 @@ function App() {
                         }
                     ]}
                     series={[
-                        { dataKey: 'wins', label: 'Wins', color: '#1E90FF' },
-                        { dataKey: 'losses', label: 'Losses', color: '#ED0A3F' }
+                        {dataKey: 'wins', label: 'Wins', color: '#1E90FF'},
+                        {dataKey: 'losses', label: 'Losses', color: '#ED0A3F'}
                     ]}
                     height={300}
-                    grid={{ vertical: true, horizontal: true }}
+                    grid={{vertical: true, horizontal: true}}
                 />
-
-
             </Box>
 
             {/* Win Rate Section */}
@@ -201,6 +207,31 @@ function App() {
                         </Typography>
                     </Box>
                 </Box>
+            </Box>
+
+            {/* Fetched Game Data Section */}
+            <Box sx={{ mt: 4 }}>
+                <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
+                    Fetched Game Data
+                </Typography>
+                {gameData.length > 0 ? (
+                    <Box component="ul" sx={{ listStyleType: 'none', p: 0 }}>
+                        {gameData.map((game, index) => (
+                            <Box component="li" key={index} sx={{ mb: 2 }}>
+                                <Typography variant="body1" color="text.primary">
+                                    Date: {new Date(game.date).toLocaleString()}
+                                </Typography>
+                                <Typography variant="body1" color="text.primary">
+                                    MMR Change: {game.mmr_change_to_last_game}
+                                </Typography>
+                            </Box>
+                        ))}
+                    </Box>
+                ) : (
+                    <Typography variant="body1" color="text.primary">
+                        No game data available.
+                    </Typography>
+                )}
             </Box>
         </ThemeProvider>
     );
