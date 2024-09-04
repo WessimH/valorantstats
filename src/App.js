@@ -26,6 +26,10 @@ function App() {
     const [dataset, setDataset] = useState([]);
     const [winRate, setWinRate] = useState(0); // State to hold the win rate
     const [gameData, setGameData] = useState([]); // State to hold the fetched game data
+    const [totalGames, setTotalGames] = useState(0); // State to hold the total number of games
+    const [totalWins, setTotalWins] = useState(0); // State to hold the total number of wins
+    const [totalLosses, setTotalLosses] = useState(0); // State to hold the total number of losses
+    const [gamesInGraph, setGamesInGraph] = useState(0); // State to hold the number of games in the graph
     const apiKey = process.env.REACT_APP_API_KEY;
 
     const fetchData = useCallback(async () => {
@@ -54,7 +58,7 @@ function App() {
                 const counts = transformedData.reduce((acc, match) => {
                     const hour = match.hour;
                     if (!acc[hour]) {
-                        acc[hour] = {x: hour, wins: 0, losses: 0};
+                        acc[hour] = { x: hour, wins: 0, losses: 0 };
                     }
                     if (match.result === 'Win') {
                         acc[hour].wins += 1;
@@ -72,16 +76,19 @@ function App() {
                 // Calculate the total number of wins and losses
                 const totalWins = datasetArray.reduce((acc, item) => acc + item.wins, 0);
                 const totalLosses = datasetArray.reduce((acc, item) => acc + item.losses, 0);
-                const winRate = totalWins + totalLosses > 0 ? (totalWins / (totalWins + totalLosses)) * 100 : 0;
+                const totalGames = totalWins + totalLosses;
+                const winRate = totalGames > 0 ? (totalWins / totalGames) * 100 : 0;
 
                 setWinRate(winRate.toFixed(2)); // Store win rate as a percentage with 2 decimals
-                return transformedData;
+                setTotalGames(totalGames); // Store total number of games
+                setTotalWins(totalWins); // Store total number of wins
+                setTotalLosses(totalLosses); // Store total number of losses
+                setGamesInGraph(transformedData.length); // Store the number of games in the graph
             } catch (error) {
                 setError(error.message);
-                return [];
             }
         }
-    }, [name, tag, server , apiKey]);
+    }, [name, tag, server, apiKey]);
 
     useEffect(() => {
         const getData = async () => {
@@ -97,10 +104,10 @@ function App() {
 
     return (
         <ThemeProvider theme={darkTheme}>
-            <CssBaseline/>
+            <CssBaseline />
             {/* Centered H1 */}
             <Typography
-                sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4}}
+                sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 4 }}
                 variant="h1"
                 color="text.primary"
             >
@@ -108,13 +115,13 @@ function App() {
             </Typography>
 
             {/* Input section for Name, Tag, and Server */}
-            <Box component="div" sx={{display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4}}>
-                <Typography variant="h6" color="text.primary" sx={{mb: 2}}>
+            <Box component="div" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
+                <Typography variant="h6" color="text.primary" sx={{ mb: 2 }}>
                     Enter your Valorant Name and Tag
                 </Typography>
 
                 {/* Input Fields */}
-                <Box component="div" sx={{display: 'flex', gap: 2, alignItems: 'center', mb: 4}}>
+                <Box component="div" sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 4 }}>
                     <TextField
                         id="name-field"
                         label="Name"
@@ -136,7 +143,7 @@ function App() {
                             id="server-select"
                             value={server}
                             onChange={handleChange}
-                            sx={{minWidth: 120}}
+                            sx={{ minWidth: 120 }}
                         >
                             {servers.map((server) => (<MenuItem key={server.value} value={server.value}>
                                 {server.label}
@@ -147,40 +154,42 @@ function App() {
             </Box>
 
             {/* Win / Loss Section */}
-            <Box>
-                <Typography sx={{display: 'flex', justifyContent: 'center', alignItems: 'center'}} variant="h6"
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+                <Typography sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} variant="h6"
                             color="text.primary">
                     Win / Loose per hour of the day
                 </Typography>
                 {error && <p>Error: {error}</p>}
-                <LineChart
-                    dataset={dataset}
-                    xAxis={[
-                        {
-                            id: 'Hours',
-                            dataKey: 'x',
-                            label: 'Hour of the Day'
-                        }
-                    ]}
-                    yAxis={[
-                        {
-                            id: 'Count',
-                            label: 'Number of Wins/Losses'
-                        }
-                    ]}
-                    series={[
-                        {dataKey: 'wins', label: 'Wins', color: '#1E90FF'},
-                        {dataKey: 'losses', label: 'Losses', color: '#ED0A3F'}
-                    ]}
-                    height={300}
-                    grid={{vertical: true, horizontal: true}}
-                />
+                <Box sx={{ width: '100%', maxWidth: 1000 }}>
+                    <LineChart
+                        dataset={dataset}
+                        xAxis={[
+                            {
+                                id: 'Hours',
+                                dataKey: 'x',
+                                label: 'Hour of the Day'
+                            }
+                        ]}
+                        yAxis={[
+                            {
+                                id: 'Count',
+                                label: 'Number of Wins/Losses'
+                            }
+                        ]}
+                        series={[
+                            { dataKey: 'wins', label: 'Wins', color: '#1E90FF' },
+                            { dataKey: 'losses', label: 'Losses', color: '#ED0A3F' }
+                        ]}
+                        height={300}
+                        grid={{ vertical: true, horizontal: true }}
+                    />
+                </Box>
             </Box>
 
             {/* Win Rate Section */}
-            <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', mt: 4}}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', mt: 4 }}>
                 <Typography variant="h6" color="text.primary">Win Rate</Typography>
-                <Box sx={{position: 'relative', display: 'inline-flex'}}>
+                <Box sx={{ position: 'relative', display: 'inline-flex' }}>
                     <CircularProgress
                         variant="determinate"
                         value={winRate}
@@ -207,6 +216,17 @@ function App() {
                         </Typography>
                     </Box>
                 </Box>
+                <Box sx={{ mt: 2, textAlign: 'center' }}>
+                    <Typography variant="body1" color="text.primary">
+                        Total Games: {totalGames}
+                    </Typography>
+                    <Typography variant="body1" color="text.primary">
+                        Wins: {totalWins}
+                    </Typography>
+                    <Typography variant="body1" color="text.primary">
+                        Losses: {totalLosses}
+                    </Typography>
+                </Box>
             </Box>
 
             {/* Fetched Game Data Section */}
@@ -218,12 +238,7 @@ function App() {
                     <Box component="ul" sx={{ listStyleType: 'none', p: 0 }}>
                         {gameData.map((game, index) => (
                             <Box component="li" key={index} sx={{ mb: 2 }}>
-                                <Typography variant="body1" color="text.primary">
-                                    Date: {new Date(game.date).toLocaleString()}
-                                </Typography>
-                                <Typography variant="body1" color="text.primary">
-                                    MMR Change: {game.mmr_change_to_last_game}
-                                </Typography>
+                                {/* Display game data */}
                             </Box>
                         ))}
                     </Box>
@@ -233,6 +248,7 @@ function App() {
                     </Typography>
                 )}
             </Box>
+
         </ThemeProvider>
     );
 }
